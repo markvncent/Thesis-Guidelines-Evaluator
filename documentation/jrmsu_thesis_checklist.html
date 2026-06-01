@@ -1,0 +1,396 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-sans); }
+  .wrap { padding: 1.5rem 0; }
+  .header { margin-bottom: 1.5rem; }
+  .header h2 { font-size: 18px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 4px; }
+  .header p { font-size: 13px; color: var(--color-text-secondary); }
+  .progress-bar-wrap { background: var(--color-background-secondary); border-radius: 99px; height: 8px; margin: 12px 0 4px; overflow: hidden; border: 0.5px solid var(--color-border-tertiary); }
+  .progress-bar { height: 100%; border-radius: 99px; background: #1D9E75; transition: width 0.3s; }
+  .progress-label { font-size: 12px; color: var(--color-text-secondary); text-align: right; }
+  .filter-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1rem; align-items: center; }
+  .filter-btn { font-size: 12px; padding: 4px 12px; border-radius: 99px; border: 0.5px solid var(--color-border-secondary); background: var(--color-background-primary); color: var(--color-text-secondary); cursor: pointer; transition: all 0.15s; }
+  .filter-btn:hover { background: var(--color-background-secondary); }
+  .filter-btn.active { background: var(--color-background-secondary); color: var(--color-text-primary); border-color: var(--color-border-primary); font-weight: 500; }
+  .section { margin-bottom: 1.25rem; border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); overflow: hidden; }
+  .section-header { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--color-background-secondary); cursor: pointer; user-select: none; border-bottom: 0.5px solid var(--color-border-tertiary); }
+  .section-header:hover { background: var(--color-background-tertiary); }
+  .section-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); flex: 1; }
+  .section-count { font-size: 11px; color: var(--color-text-secondary); background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: 99px; padding: 2px 8px; }
+  .chevron { font-size: 14px; color: var(--color-text-secondary); transition: transform 0.2s; }
+  .chevron.open { transform: rotate(180deg); }
+  .items { padding: 0; }
+  .item { display: flex; align-items: flex-start; gap: 10px; padding: 9px 14px; border-bottom: 0.5px solid var(--color-border-tertiary); cursor: pointer; transition: background 0.1s; }
+  .item:last-child { border-bottom: none; }
+  .item:hover { background: var(--color-background-secondary); }
+  .item.done { opacity: 0.5; }
+  .item.done .item-text { text-decoration: line-through; color: var(--color-text-secondary); }
+  .checkbox { width: 16px; height: 16px; min-width: 16px; border-radius: 4px; border: 0.5px solid var(--color-border-secondary); display: flex; align-items: center; justify-content: center; margin-top: 2px; transition: all 0.15s; background: var(--color-background-primary); }
+  .checkbox.checked { background: #1D9E75; border-color: #1D9E75; }
+  .checkbox.checked::after { content: ''; width: 9px; height: 6px; border-left: 2px solid #fff; border-bottom: 2px solid #fff; transform: rotate(-45deg) translate(1px, -1px); display: block; }
+  .item-text { font-size: 13px; color: var(--color-text-primary); line-height: 1.5; flex: 1; }
+  .badge { font-size: 10px; padding: 2px 7px; border-radius: 99px; font-weight: 500; white-space: nowrap; margin-top: 2px; }
+  .badge-req { background: #E6F1FB; color: #185FA5; }
+  .badge-fmt { background: #EAF3DE; color: #3B6D11; }
+  .badge-apa { background: #FAEEDA; color: #854F0B; }
+  .badge-lang { background: #FBEAF0; color: #993556; }
+  .badge-content { background: #EEEDFE; color: #534AB7; }
+  .badge-stat { background: #FAECE7; color: #993C1D; }
+  .hidden { display: none; }
+  .reset-btn { font-size: 12px; padding: 4px 12px; border-radius: 99px; border: 0.5px solid var(--color-border-secondary); background: var(--color-background-primary); color: var(--color-text-secondary); cursor: pointer; margin-left: auto; }
+  .reset-btn:hover { color: #A32D2D; border-color: #E24B4A; }
+  .empty-msg { font-size: 13px; color: var(--color-text-secondary); text-align: center; padding: 2rem 0; }
+</style>
+
+<h2 class="sr-only">JRMSU Thesis Writing Checklist — all guideline items across format, content, APA, language, and statistical requirements</h2>
+
+<div class="wrap">
+  <div class="header">
+    <h2>JRMSU Graduate School — Thesis Checklist</h2>
+    <p>Check each item as you verify or complete it. Filters let you focus on one category at a time.</p>
+    <div class="progress-bar-wrap"><div class="progress-bar" id="pbar" style="width:0%"></div></div>
+    <div class="progress-label"><span id="pdone">0</span> / <span id="ptotal">0</span> items completed</div>
+  </div>
+
+  <div class="filter-row">
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="req">Required sections</button>
+    <button class="filter-btn" data-filter="fmt">Formatting</button>
+    <button class="filter-btn" data-filter="apa">APA 6th ed.</button>
+    <button class="filter-btn" data-filter="lang">Language & grammar</button>
+    <button class="filter-btn" data-filter="content">Content & structure</button>
+    <button class="filter-btn" data-filter="stat">Statistics & data</button>
+    <button class="reset-btn" id="resetBtn">Reset all</button>
+  </div>
+
+  <div id="sections-wrap"></div>
+</div>
+
+<script>
+const DATA = [
+  {
+    title: "Paper Setup & Formatting",
+    items: [
+      { text: "Paper size is 8.5\" × 11\" (letter size)", tags: ["fmt"] },
+      { text: "Double (2) spacing applied throughout the entire manuscript", tags: ["fmt"] },
+      { text: "Exception: figure and table titles use single spacing", tags: ["fmt"] },
+      { text: "Top margin: 1.0\"", tags: ["fmt"] },
+      { text: "Right margin: 1.0\"", tags: ["fmt"] },
+      { text: "Bottom margin: 1.0\"", tags: ["fmt"] },
+      { text: "Left margin: 1.5\"", tags: ["fmt"] },
+      { text: "Font style is Times New Roman throughout", tags: ["fmt"] },
+      { text: "Chapter headings (Chapters 1–5) use font size 14", tags: ["fmt"] },
+      { text: "Side headings and titles of chapters/content use font size 12", tags: ["fmt"] },
+      { text: "All figure and table titles use font size 12, except Figure 1 Schema of the Study which must be font size 14", tags: ["fmt"] },
+      { text: "Headings and side headings are in bold face", tags: ["fmt"] },
+      { text: "All other parts (non-headings) are in normal (not bold) face", tags: ["fmt"] },
+      { text: "Chapter heading numeral system is consistent throughout (Roman or Arabic — not mixed)", tags: ["fmt"] },
+      { text: "Page numbers are correct, continuous, and free of artifacts or duplicates", tags: ["fmt"] },
+      { text: "Front matter pages use Roman numerals; body pages use Arabic numerals", tags: ["fmt"] },
+    ]
+  },
+  {
+    title: "Front Matter — Required Sections",
+    items: [
+      { text: "Title page is present and correctly formatted (Annex A)", tags: ["req"] },
+      { text: "Title page does not say 'A Thesis Writing' — must say 'A Thesis'", tags: ["req", "lang"] },
+      { text: "Institutional header appears only once on the title page (not duplicated)", tags: ["req", "fmt"] },
+      { text: "Certification page is present and correctly filled out (Annex B)", tags: ["req"] },
+      { text: "Certification language attests to thesis submission — not to an exam or integrative paper", tags: ["req", "content"] },
+      { text: "Approval Sheet is present and correctly formatted (Annex C)", tags: ["req"] },
+      { text: "Abstract is present", tags: ["req"] },
+      { text: "Abstract covers: purpose, research design, respondents, key findings, and conclusions — in that order", tags: ["req", "content"] },
+      { text: "Keywords are broad conceptual terms appropriate for indexing — not subvariables", tags: ["req", "content"] },
+      { text: "Dedication is present", tags: ["req"] },
+      { text: "Acknowledgment is present", tags: ["req"] },
+      { text: "Table of Contents is present and accurate", tags: ["req", "fmt"] },
+      { text: "Table of Contents does not contain duplicate entries", tags: ["req", "fmt"] },
+      { text: "List of Tables is present", tags: ["req"] },
+      { text: "List of Figures is present", tags: ["req"] },
+      { text: "List of Figures appears in Table of Contents as a properly numbered entry", tags: ["req", "fmt"] },
+      { text: "Front matter sections appear in correct order: Title Page → Certification → Approval Sheet → Abstract → Dedication → Acknowledgment → List of Tables → List of Figures", tags: ["req", "fmt"] },
+    ]
+  },
+  {
+    title: "Chapter 1 — The Problem and Its Scope",
+    items: [
+      { text: "Introduction starts with a macro idea and narrows to micro (problem rationale)", tags: ["content"] },
+      { text: "Introduction is preferably 2–3 pages — not excessively long or repetitive", tags: ["content"] },
+      { text: "Introduction does not pre-empt the Theoretical Framework discussion", tags: ["content"] },
+      { text: "Theoretical/Conceptual Framework anchors the study to a named theory with proper citation", tags: ["content"] },
+      { text: "All theories mentioned in the framework are operationalized in the study — remove theories that are not applied", tags: ["content"] },
+      { text: "Framework discussion follows the flow of variables in the schema", tags: ["content"] },
+      { text: "Last paragraph of the framework discusses the schema of the study", tags: ["content"] },
+      { text: "Schema/Figure 1 is presented on a separate page after the framework discussion", tags: ["fmt"] },
+      { text: "Figure 1 caption follows APA 6th ed. format (below figure, italicized, sentence case)", tags: ["apa", "fmt"] },
+      { text: "No term or definition is repeated twice in the Conceptual Framework discussion", tags: ["content"] },
+      { text: "Statement of the Problem is structured in two clearly separated parts: General SOP and Specific SOP", tags: ["content"] },
+      { text: "General SOP answers the wh-questions (what, who, where, when) about the study", tags: ["content"] },
+      { text: "Specific SOP presents numbered specific objectives", tags: ["content"] },
+      { text: "Research Questions are listed separately after the Specific SOP", tags: ["content"] },
+      { text: "Research question lead-in uses a colon, not a semicolon", tags: ["lang"] },
+      { text: "Sub-questions are uniformly indented and consistently punctuated", tags: ["fmt", "lang"] },
+      { text: "Null hypotheses are provided for all inferential research questions", tags: ["content"] },
+      { text: "Hypothesis for correlation questions uses 'relationship' not 'difference'", tags: ["content", "lang"] },
+      { text: "Hypothesis subscript notation is consistent (H₀₁, H₀₂, etc. — not mixed bold/superscript)", tags: ["fmt"] },
+      { text: "Significance of the Study explains how each stakeholder benefits FROM the findings — not how they contribute data", tags: ["content"] },
+      { text: "Significance section is written in present or future tense (prospective)", tags: ["lang"] },
+      { text: "Significance section: no past tense verbs (e.g., 'enabled' → 'enables')", tags: ["lang"] },
+      { text: "Scope and Delimitation is presented as ONE combined section, not two separate subsections", tags: ["content", "fmt"] },
+      { text: "Scope and Delimitation explicitly identifies the independent variable and dependent variable", tags: ["content"] },
+      { text: "Scope section does not contain methodological details (those belong in Chapter 3)", tags: ["content"] },
+      { text: "Definition of Terms: all terms are arranged strictly alphabetically", tags: ["content"] },
+      { text: "Definition of Terms: only terms found in the title, schema, or variables are defined — remove irrelevant terms", tags: ["content"] },
+      { text: "Definition of Terms: each term is defined operationally (how it is used in the study)", tags: ["content"] },
+    ]
+  },
+  {
+    title: "Chapter 2 — Review of Related Literature",
+    items: [
+      { text: "Chapter 2 opens with an introductory paragraph that orients the reader to the chapter's thematic structure", tags: ["content"] },
+      { text: "Introductory paragraph states the time range of sources reviewed", tags: ["content"] },
+      { text: "Introductory paragraph does NOT pre-emptively summarize the gap (save that for Synthesis and Gap)", tags: ["content"] },
+      { text: "Literature is thematically arranged — NOT chronologically or by author", tags: ["content"] },
+      { text: "Subheadings follow the same order as the variables in the conceptual framework and research questions", tags: ["content"] },
+      { text: "Each subheading is a noun phrase — NOT a complete sentence", tags: ["lang"] },
+      { text: "Subheadings are placed correctly before (not mid-discussion of) their respective content", tags: ["content"] },
+      { text: "Each subheading's content does not bleed into another variable's subheading section", tags: ["content"] },
+      { text: "Local and Regional Studies section is sufficiently substantive (not just 2–3 citations)", tags: ["content"] },
+      { text: "Chapter ends with a single subheading: 'Synthesis and Gap' — NOT split into 'Synthesis' and 'Conclusion'", tags: ["content", "fmt"] },
+      { text: "No 'Conclusion' subheading appears within Chapter 2", tags: ["content"] },
+      { text: "Synthesis and Gap section synthesizes connections across themes — not just summaries side by side", tags: ["content"] },
+      { text: "Synthesis and Gap section identifies the specific research gap that this study addresses", tags: ["content"] },
+    ]
+  },
+  {
+    title: "Chapter 3 — Research Methodology",
+    items: [
+      { text: "All verbs in Chapter 3 are in past tense (study has been conducted)", tags: ["lang"] },
+      { text: "Research Environment describes the condition where the study was conducted — NOT anecdotal episodes or case-style narratives", tags: ["content"] },
+      { text: "Research Environment describes the organizational/administrative context of the setting", tags: ["content"] },
+      { text: "Research Environment explains why the setting is significant to the study", tags: ["content"] },
+      { text: "Sampling method described matches the actual approach used (e.g., total enumeration vs. purposive)", tags: ["content"] },
+      { text: "Research Instrument section specifies the number of items per part and per subscale", tags: ["content"] },
+      { text: "Research Instrument section names the source/reference for each adapted instrument", tags: ["content"] },
+      { text: "If instrument is modified/adapted, this is clearly stated and the modification is described", tags: ["content"] },
+      { text: "Validation of Instrument describes how the instrument was validated", tags: ["content"] },
+      { text: "If instrument is not standardized, describe how it was made and validated", tags: ["content"] },
+      { text: "Reliability coefficient (Cronbach's alpha or equivalent) is reported", tags: ["content", "stat"] },
+      { text: "Scoring Procedure includes the ranges, descriptions, and interpretations of scores", tags: ["content"] },
+      { text: "Scoring rubric label matches the variable being measured (e.g., 'physiological wellness' not 'psychological wellness')", tags: ["content", "lang"] },
+      { text: "All scoring sections use the same Likert scale consistently (no mixed 4-point and 5-point within same study)", tags: ["stat", "content"] },
+      { text: "Redundant scoring tables are removed — one official rubric per variable is sufficient", tags: ["content"] },
+      { text: "Statistical Treatment section uses correct subject-verb agreement (e.g., 'statistical tools were used')", tags: ["lang"] },
+      { text: "Statistical tools listed are internally consistent — no mixing of parametric and non-parametric without justification", tags: ["stat"] },
+      { text: "If regression is used, justify treating Likert data as interval-level or report normality tests", tags: ["stat"] },
+      { text: "Statistical tools listed in Chapter 3 match the tools actually used in Chapter 4", tags: ["stat"] },
+      { text: "Statistical Tools table (if present) has correct sequential numbering of objectives — no duplicate numbers", tags: ["fmt"] },
+      { text: "Ethical considerations mention consent, confidentiality, voluntary participation, and data privacy", tags: ["content"] },
+      { text: "If REC/UREC approval is mentioned, a copy of the clearance is attached as an annex", tags: ["req"] },
+    ]
+  },
+  {
+    title: "Chapter 4 — Presentation, Analysis, and Interpretation of Data",
+    items: [
+      { text: "Chapter 4 opens with an introductory paragraph mapping content to research questions", tags: ["content"] },
+      { text: "Tables are presented FIRST, followed by discussion, analysis, and interpretation — not the other way around", tags: ["content"] },
+      { text: "Table narrative descriptions match the table they introduce (no mislabeled or one-table-ahead errors)", tags: ["content"] },
+      { text: "Table numbers in the narrative match actual table numbers in the document", tags: ["content"] },
+      { text: "Verbal interpretations in tables match the interpretive labels used in the narrative discussion", tags: ["content", "stat"] },
+      { text: "Scoring legend/scale used in Chapter 4 tables matches the rubric defined in Chapter 3", tags: ["stat", "content"] },
+      { text: "Score range values in tables are mathematically valid (lower bound < upper bound)", tags: ["stat"] },
+      { text: "Scale descriptors match the type of variable (e.g., frequency scale for frequency items, not agreement scale)", tags: ["stat", "content"] },
+      { text: "All missing Description/interpretation cells in summary tables are filled in", tags: ["content"] },
+      { text: "Each table discussion offers unique analysis specific to that dimension — not recycled generic paragraphs", tags: ["content"] },
+      { text: "No stray text fragments, copy-paste remnants, or incomplete sentences in discussions", tags: ["lang"] },
+      { text: "Counter-intuitive or unexpected findings (e.g., negative correlations) are given adequate theoretical explanation", tags: ["content"] },
+      { text: "Questionnaire items are placed under the correct indicator/subscale — verify all items belong where they are listed", tags: ["content"] },
+      { text: "Questionnaire scale descriptors are in correct order and consistent across all parts", tags: ["content"] },
+      { text: "Questionnaire typos corrected (e.g., 'Effective' for the lowest score when it should be 'Ineffective')", tags: ["lang"] },
+      { text: "Statistical results are reported in correct APA format (F, r, p, df, CI notation)", tags: ["apa", "stat"] },
+    ]
+  },
+  {
+    title: "Chapter 5 — Summary, Findings, Conclusions, and Recommendations",
+    items: [
+      { text: "Chapter 5 heading is plural: 'Conclusions' and 'Recommendations' — not singular", tags: ["lang"] },
+      { text: "Summary describes the study purpose, research design, respondents, and statistical tools used", tags: ["content"] },
+      { text: "Findings section is structured to mirror the exact order of the research questions in Chapter 1", tags: ["content"] },
+      { text: "Each finding is clearly labeled and corresponds to a specific research question", tags: ["content"] },
+      { text: "Only ONE 'Conclusions' heading appears in the chapter — no duplicate heading", tags: ["content", "fmt"] },
+      { text: "Conclusions are presented in paragraph form", tags: ["content"] },
+      { text: "Each conclusion flows logically from a specific finding", tags: ["content"] },
+      { text: "Recommendations are doable and grounded in the study's own findings — not generic best practices", tags: ["content"] },
+      { text: "Future research recommendations are clearly labeled as such (separate from practical recommendations)", tags: ["content", "fmt"] },
+      { text: "Recommendations formatting is consistent (all numbered, or all bulleted — not mixed)", tags: ["fmt"] },
+    ]
+  },
+  {
+    title: "APA 6th Edition — Tables",
+    items: [
+      { text: "Table label ('Table X') is above the table, flush left, plain text — not bold or italicized", tags: ["apa", "fmt"] },
+      { text: "Table title is on the next line below the label, flush left, italicized, title case", tags: ["apa", "fmt"] },
+      { text: "Tables have no vertical lines — only horizontal lines at top, below column headers, and at bottom", tags: ["apa", "fmt"] },
+      { text: "Table notes appear below the table, introduced by 'Note.' in bold italics followed by a period", tags: ["apa", "fmt"] },
+      { text: "Table notes explain all abbreviations used (r, p, df, B, SE, CI, SD, etc.)", tags: ["apa"] },
+      { text: "All tables except significance tests are presented before their discussions", tags: ["apa", "content"] },
+      { text: "Table numbering is sequential and consistent throughout the entire manuscript", tags: ["apa", "fmt"] },
+    ]
+  },
+  {
+    title: "APA 6th Edition — References",
+    items: [
+      { text: "References are arranged strictly alphabetically by first author's surname", tags: ["apa"] },
+      { text: "No duplicate references in the reference list", tags: ["apa"] },
+      { text: "All in-text citations have a corresponding entry in the reference list", tags: ["apa"] },
+      { text: "All reference list entries have corresponding in-text citations", tags: ["apa"] },
+      { text: "Journal references include: author(s), year, title, journal name, volume, issue, page numbers", tags: ["apa"] },
+      { text: "Web/government references include: author/organization, year, title, URL, and access date", tags: ["apa"] },
+      { text: "'et al.' is correctly formatted — no period after 'et', no capital letters (not 'et. Al.' or 'Et al.')", tags: ["apa", "lang"] },
+      { text: "No comma between author name and year in in-text citations: 'Smith (2020)' not 'Smith, (2020)'", tags: ["apa"] },
+      { text: "Multiple citations in one parenthetical are separated by semicolons", tags: ["apa"] },
+      { text: "Authors with 6 or fewer names are all listed in full in the reference list — do not use et al. in references", tags: ["apa"] },
+      { text: "No invisible/special characters in citations (e.g., zero-width non-joiner characters from copy-paste)", tags: ["apa", "lang"] },
+      { text: "Documentation for all types of research follows APA 6th edition", tags: ["apa"] },
+    ]
+  },
+  {
+    title: "Language, Grammar & Tense",
+    items: [
+      { text: "Chapters 1 and 2 are written in present or future tense (prospective/general)", tags: ["lang"] },
+      { text: "Chapters 3, 4, and 5 are written in past tense (study has been completed)", tags: ["lang"] },
+      { text: "Tense is consistent within each chapter — no unintentional mixing of past and future in the same paragraph", tags: ["lang"] },
+      { text: "Subject-verb agreement is correct throughout (e.g., 'tools were used' not 'tools was used')", tags: ["lang"] },
+      { text: "No subjective or informal words in academic writing (e.g., 'fascinating', 'interesting')", tags: ["lang"] },
+      { text: "No stray sentence fragments or incomplete sentences", tags: ["lang"] },
+      { text: "Apostrophes are used correctly for possessives (e.g., 'respondents'' not 'respondents')", tags: ["lang"] },
+      { text: "All parentheses and brackets in the text are properly closed", tags: ["lang"] },
+      { text: "No duplicate consecutive citations (same reference cited twice in a row)", tags: ["lang", "apa"] },
+      { text: "No copy-paste artifacts left in the text (e.g., stray numbers, fragments, duplicate words)", tags: ["lang"] },
+      { text: "Factual claims about theories are accurate — verify key theoretical statements (e.g., do not describe a positive relationship as 'inverse')", tags: ["lang", "content"] },
+    ]
+  },
+];
+
+let state = {};
+let currentFilter = 'all';
+
+function getKey(si, ii) { return `${si}-${ii}`; }
+function load() {
+  try { const s = localStorage.getItem('thesis_checklist'); if (s) state = JSON.parse(s); } catch(e) {}
+}
+function save() {
+  try { localStorage.setItem('thesis_checklist', JSON.stringify(state)); } catch(e) {}
+}
+
+function countTotals(filter) {
+  let total = 0, done = 0;
+  DATA.forEach((sec, si) => {
+    sec.items.forEach((item, ii) => {
+      if (filter === 'all' || item.tags.includes(filter)) {
+        total++;
+        if (state[getKey(si, ii)]) done++;
+      }
+    });
+  });
+  return { total, done };
+}
+
+function updateProgress() {
+  const { total, done } = countTotals(currentFilter);
+  document.getElementById('ptotal').textContent = total;
+  document.getElementById('pdone').textContent = done;
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  document.getElementById('pbar').style.width = pct + '%';
+}
+
+function badgeHTML(tags) {
+  const map = { req: ['req','required'], fmt: ['fmt','formatting'], apa: ['apa','apa 6th'], lang: ['lang','language'], content: ['content','content'], stat: ['stat','statistics'] };
+  return tags.map(t => {
+    const [cls, label] = map[t] || ['fmt', t];
+    return `<span class="badge badge-${cls}">${label}</span>`;
+  }).join(' ');
+}
+
+function render() {
+  const wrap = document.getElementById('sections-wrap');
+  wrap.innerHTML = '';
+  DATA.forEach((sec, si) => {
+    const visibleItems = sec.items.filter((item, ii) => currentFilter === 'all' || item.tags.includes(currentFilter));
+    if (!visibleItems.length) return;
+
+    const donePairs = visibleItems.filter((item, localIdx) => {
+      const origIdx = sec.items.indexOf(item);
+      return state[getKey(si, origIdx)];
+    });
+
+    const secEl = document.createElement('div');
+    secEl.className = 'section';
+
+    const hdr = document.createElement('div');
+    hdr.className = 'section-header';
+    hdr.innerHTML = `<i class="ti ti-chevron-down chevron open" aria-hidden="true"></i><span class="section-title">${sec.title}</span><span class="section-count">${donePairs.length}/${visibleItems.length}</span>`;
+    secEl.appendChild(hdr);
+
+    const itemsWrap = document.createElement('div');
+    itemsWrap.className = 'items';
+
+    visibleItems.forEach((item) => {
+      const origIdx = sec.items.indexOf(item);
+      const key = getKey(si, origIdx);
+      const done = !!state[key];
+
+      const row = document.createElement('div');
+      row.className = 'item' + (done ? ' done' : '');
+      row.innerHTML = `<div class="checkbox${done ? ' checked' : ''}" role="checkbox" aria-checked="${done}" aria-label="${item.text}"></div><div style="flex:1"><div class="item-text">${item.text}</div><div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">${badgeHTML(item.tags)}</div></div>`;
+
+      row.addEventListener('click', () => {
+        state[key] = !state[key];
+        save();
+        render();
+        updateProgress();
+      });
+
+      itemsWrap.appendChild(row);
+    });
+
+    secEl.appendChild(itemsWrap);
+    wrap.appendChild(secEl);
+
+    hdr.addEventListener('click', (e) => {
+      if (e.target.closest('.item')) return;
+      const chevron = hdr.querySelector('.chevron');
+      const isOpen = chevron.classList.contains('open');
+      chevron.classList.toggle('open', !isOpen);
+      itemsWrap.style.display = isOpen ? 'none' : 'block';
+    });
+  });
+
+  if (!wrap.children.length) {
+    wrap.innerHTML = '<div class="empty-msg">No items match this filter.</div>';
+  }
+
+  updateProgress();
+}
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    render();
+  });
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  if (confirm('Reset all checkboxes?')) {
+    state = {};
+    save();
+    render();
+  }
+});
+
+load();
+render();
+</script>
